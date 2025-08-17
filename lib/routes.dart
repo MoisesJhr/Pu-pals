@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'modules/home/home_page.dart';
-import 'modules/parent/parent_page.dart';
-import 'modules/child/child_page.dart';
+import 'modules/parent/parent_page.dart'; // 👈 agrega este import
 
 class AppRoutes {
   static const home = '/';
@@ -9,8 +8,7 @@ class AppRoutes {
   static const child = '/child';
 
   static Map<String, WidgetBuilder> routes = {
-    home: (context) => HomePage(),
-    //parent: (context) => ParentPage(),
-    //child: (context) => ChildPage(),
+    home: (context) => const HomePage(),
+    parent: (context) => const ParentPage(),
   };
 }
