@@ -34,7 +34,6 @@ class _QrScanPageState extends State<QrScanPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Evita start/stop si aún no hay permiso de cámara (recomendado por el paquete)
     if (!_controller.value.hasCameraPermission) return;
 
     switch (state) {
@@ -101,21 +100,30 @@ class _QrScanPageState extends State<QrScanPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.black, // El fondo negro de la cámara es necesario
       appBar: AppBar(
-        title: const Text('Escanear QR'),
+        title: const Text(
+          'Escanear QR',
+          style: TextStyle(color: Colors.white), // Título blanco
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.black.withOpacity(
+          0.5,
+        ), // AppBar semitransparente
+        elevation: 0,
         actions: [
           IconButton(
             tooltip: 'Linterna',
             onPressed: () => _controller.toggleTorch(),
             icon: ValueListenableBuilder<MobileScannerState>(
-              valueListenable:
-                  _controller, // 👈 escuchamos al controller (ValueNotifier)
+              valueListenable: _controller,
               builder: (context, state, _) {
-                final torch =
-                    state.torchState; // TorchState.off / on / unavailable
+                final torch = state.torchState;
                 final isOn = torch == TorchState.on;
-                return Icon(isOn ? Icons.flash_on : Icons.flash_off);
+                return Icon(
+                  isOn ? Icons.flash_on : Icons.flash_off,
+                  color: Colors.white, // Icono blanco
+                );
               },
             ),
           ),
@@ -125,15 +133,18 @@ class _QrScanPageState extends State<QrScanPage> with WidgetsBindingObserver {
             icon: ValueListenableBuilder<MobileScannerState>(
               valueListenable: _controller,
               builder: (context, state, _) {
-                final facing =
-                    state.cameraDirection; // CameraFacing.back/front/unknown
+                final facing = state.cameraDirection;
                 final back = facing == CameraFacing.back;
-                return Icon(back ? Icons.camera_rear : Icons.camera_front);
+                return Icon(
+                  back ? Icons.camera_rear : Icons.camera_front,
+                  color: Colors.white, // Icono blanco
+                );
               },
             ),
           ),
         ],
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -183,7 +194,9 @@ class _ErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.redAccent.shade700,
+      color: Colors.redAccent.shade700.withOpacity(
+        0.9,
+      ), // Color semitransparente
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
