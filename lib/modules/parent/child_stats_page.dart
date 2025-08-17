@@ -1,3 +1,5 @@
+// lib/modules/parent/child_stats_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_prueba/modules/parent/guage_widget.dart';
 
@@ -9,9 +11,12 @@ class ChildStatsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Extracción segura de los datos del JSON
-    final usageStats = stats['usageStats'] as Map<String, dynamic>;
-    final screenTime = usageStats['screenTime'] as int;
-    final inappropriateLanguage = usageStats['inappropriateLanguage'] as int;
+    final usageStats = stats['usageStats'] as Map<String, dynamic>?;
+
+    // Asignación segura con valores por defecto en caso de que sean nulos
+    final screenTime = usageStats?['screenTime'] as int? ?? 0;
+    final inappropriateLanguage =
+        usageStats?['inappropriateLanguage'] as int? ?? 0;
 
     return Scaffold(
       appBar: AppBar(

@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_prueba/modules/parent/qr_scan_page.dart';
 import 'package:flutter_prueba/modules/parent/child_stats_page.dart';
 
-// Este widget es ahora un StatefulWidget para manejar el estado del texto cambiante.
+// This widget is now a StatefulWidget to manage the changing text state.
 class ParentPage extends StatefulWidget {
   const ParentPage({super.key});
 
@@ -16,7 +16,7 @@ class ParentPage extends StatefulWidget {
 }
 
 class _ParentPageState extends State<ParentPage> {
-  // Lista de datos curiosos sobre la seguridad y la comunicación con los hijos.
+  // List of interesting facts about safety and communication with children.
   final List<String> _groomingFacts = [
     'Dedica tiempo de calidad a tu hijo cada día. Una comunicación abierta es la mejor prevención.',
     'Pregúntale a tu hijo sobre sus amigos en línea y los juegos que le gustan. Muestra interés genuino.',
@@ -38,7 +38,7 @@ class _ParentPageState extends State<ParentPage> {
   void initState() {
     super.initState();
     _currentFact = _groomingFacts[_factIndex];
-    // Inicia un temporizador para cambiar el dato cada 8 segundos
+    // Starts a timer to change the fact every 8 seconds
     _timer = Timer.periodic(const Duration(seconds: 8), (timer) {
       setState(() {
         _factIndex = (_factIndex + 1) % _groomingFacts.length;
@@ -49,8 +49,7 @@ class _ParentPageState extends State<ParentPage> {
 
   @override
   void dispose() {
-    _timer
-        .cancel(); // Asegura que el temporizador se cancele para evitar fugas de memoria
+    _timer.cancel(); // Ensures the timer is canceled to prevent memory leaks
     super.dispose();
   }
 
@@ -129,10 +128,10 @@ class _ParentPageState extends State<ParentPage> {
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment
-                .center, // Alinea los widgets al final de la columna
+                .end, // Aligns widgets to the end of the column
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // El botón "Leer QR" está arriba del texto
+              // "Leer QR" button
               ElevatedButton.icon(
                 onPressed: () => _goScan(context),
                 icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
@@ -152,8 +151,10 @@ class _ParentPageState extends State<ParentPage> {
                   elevation: 5,
                 ),
               ),
-              const SizedBox(height: 40), // Espacio entre el botón y el texto
-              // El widget del dato curioso ahora está más abajo y es más compacto
+              const SizedBox(
+                height: 40,
+              ), // Space between the button and the text
+              // The widget with the curious fact is now lower and more compact
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
@@ -161,14 +162,14 @@ class _ParentPageState extends State<ParentPage> {
                 ),
                 color: Colors.white.withOpacity(
                   0.9,
-                ), // Fondo semitransparente para que se integre
+                ), // Semi-transparent background
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
                     _currentFact,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 14, // Tamaño de letra más pequeño
+                      fontSize: 14, // Smaller font size
                       fontStyle: FontStyle.italic,
                       color: Colors.blue.shade900,
                     ),

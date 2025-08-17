@@ -73,7 +73,7 @@ class _QrScanPageState extends State<QrScanPage> with WidgetsBindingObserver {
       if (maybeJson is Map<String, dynamic>) {
         final ok =
             maybeJson.containsKey('childId') &&
-            maybeJson.containsKey('sessionToken');
+            maybeJson.containsKey('token'); // <-- ¡CORREGIDO!
         if (!ok) throw const FormatException('JSON sin campos requeridos');
         result = QrScanResult(raw: value, json: maybeJson);
       } else {
@@ -100,16 +100,16 @@ class _QrScanPageState extends State<QrScanPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // El fondo negro de la cámara es necesario
+      backgroundColor: Colors.black, // The black camera background is necessary
       appBar: AppBar(
         title: const Text(
           'Escanear QR',
-          style: TextStyle(color: Colors.white), // Título blanco
+          style: TextStyle(color: Colors.white), // White title
         ),
         centerTitle: true,
         backgroundColor: Colors.black.withOpacity(
           0.5,
-        ), // AppBar semitransparente
+        ), // Semi-transparent AppBar
         elevation: 0,
         actions: [
           IconButton(
@@ -122,7 +122,7 @@ class _QrScanPageState extends State<QrScanPage> with WidgetsBindingObserver {
                 final isOn = torch == TorchState.on;
                 return Icon(
                   isOn ? Icons.flash_on : Icons.flash_off,
-                  color: Colors.white, // Icono blanco
+                  color: Colors.white, // White icon
                 );
               },
             ),
@@ -137,7 +137,7 @@ class _QrScanPageState extends State<QrScanPage> with WidgetsBindingObserver {
                 final back = facing == CameraFacing.back;
                 return Icon(
                   back ? Icons.camera_rear : Icons.camera_front,
-                  color: Colors.white, // Icono blanco
+                  color: Colors.white, // White icon
                 );
               },
             ),
@@ -196,7 +196,7 @@ class _ErrorBanner extends StatelessWidget {
     return Material(
       color: Colors.redAccent.shade700.withOpacity(
         0.9,
-      ), // Color semitransparente
+      ), // Semi-transparent color
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
       child: Padding(

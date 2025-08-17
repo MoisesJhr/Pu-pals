@@ -1,183 +1,218 @@
-// lib/modules/child/child_page.dart
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
-class ChildPage extends StatefulWidget {
-  const ChildPage({super.key});
-
-  @override
-  State<ChildPage> createState() => _ChildPageState();
+class QrScanResult {
+  final String raw;
+  final Map<String, dynamic>? json;
+  QrScanResult({required this.raw, this.json});
 }
 
-class _ChildPageState extends State<ChildPage> {
-  // State for handling QR data and the loading process
-  String? qrData; // Will hold the JSON with childId and token
-  bool isLoading = false; // Flag for loading state
-  String? errorMessage; // Error message
+class QrScanPage extends StatefulWidget {
+  const QrScanPage({super.key});
+
+  @override
+  State<QrScanPage> createState() => _QrScanPageState();
+}
+
+class _QrScanPageState extends State<QrScanPage> with WidgetsBindingObserver {
+  final MobileScannerController _controller = MobileScannerController(
+    formats: const [BarcodeFormat.qrCode],
+    torchEnabled: false,
+    facing: CameraFacing.back,
+    detectionSpeed: DetectionSpeed.noDuplicates,
+  );
+
+  bool _handled = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // Starts the registration process when the page loads
-    _registerChild();
+    WidgetsBinding.instance.addObserver(this);
   }
 
-  // Function to register the child on the server and get the QR data
-  Future<void> _registerChild() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_controller.value.hasCameraPermission) return;
 
-    // Your ngrok URL
-    const String ngrokUrl = 'https://0ec6053c367b.ngrok-free.app';
-    final Uri url = Uri.parse('$ngrokUrl/child/register');
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _controller.start();
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        _controller.stop();
+        break;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_handled) return;
+    final barcodes = capture.barcodes;
+    if (barcodes.isEmpty) return;
+
+    final value = barcodes.first.rawValue;
+    if (value == null || value.isEmpty) return;
+
+    _handled = true;
+
+    QrScanResult result;
 
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 201) {
-        // The request was successful
-        final Map<String, dynamic> responseBody = jsonDecode(response.body);
-        final String childId = responseBody['childId'];
-        final String token = responseBody['token'];
-
-        // Creates the JSON for the QR
-        final qrJson = jsonEncode({'childId': childId, 'token': token});
-
-        setState(() {
-          qrData = qrJson;
-          isLoading = false;
-        });
+      final maybeJson = jsonDecode(value);
+      if (maybeJson is Map<String, dynamic>) {
+        final ok =
+            maybeJson.containsKey('childId') &&
+            maybeJson.containsKey('token'); // <-- ¡CORREGIDO!
+        if (!ok) throw const FormatException('JSON sin campos requeridos');
+        result = QrScanResult(raw: value, json: maybeJson);
       } else {
-        // Server response error
-        setState(() {
-          errorMessage = 'Error del servidor: ${response.statusCode}';
-          isLoading = false;
-        });
+        result = QrScanResult(raw: value);
       }
-    } catch (e) {
-      // Connection error
-      setState(() {
-        errorMessage = 'Error de conexión: $e';
-        isLoading = false;
-      });
+    } catch (_) {
+      const prefix = 'APP:CHILD:';
+      if (!value.startsWith(prefix)) {
+        setState(() {
+          _handled = false;
+          _error = 'El QR no es válido para esta app.';
+        });
+        return;
+      }
+      result = QrScanResult(raw: value);
     }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('QR leído 👍')));
+    Navigator.of(context).pop<QrScanResult>(result);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black, // The black camera background is necessary
       appBar: AppBar(
-        title: const Text("Soy Niño"),
-        centerTitle: true,
-        backgroundColor: Colors.transparent, // Transparent to show the gradient
-        elevation: 0,
-      ),
-      extendBodyBehindAppBar: true, // Extends the body behind the AppBar
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.orange.shade100, // Gradient with a soft orange tone
-              Colors.white,
-            ],
-            stops: const [0.3, 1.0],
-          ),
+        title: const Text(
+          'Escanear QR',
+          style: TextStyle(color: Colors.white), // White title
         ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  "Muestra este QR a tu padre",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 60),
-                if (isLoading)
-                  const CircularProgressIndicator(
-                    color: Colors.orange, // Indicator color to match the theme
-                  )
-                else if (errorMessage != null)
-                  Text(
-                    errorMessage!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red, fontSize: 16),
-                  )
-                else if (qrData != null)
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.3),
-                          spreadRadius: 3,
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: QrImageView(
-                      data: qrData!,
-                      version: QrVersions.auto,
-                      size: 250.0,
-                      backgroundColor: Colors.white,
-                      errorStateBuilder: (cxt, err) {
-                        return const Center(
-                          child: Text(
-                            "¡Ups! Algo salió mal con el QR.",
-                            textAlign: TextAlign.center,
-                          ),
-                        );
-                      },
-                    ),
-                  )
-                else
-                  const Text(
-                    "Generando código...",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                const SizedBox(height: 40),
-                if (errorMessage != null)
-                  ElevatedButton(
-                    onPressed: _registerChild,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      backgroundColor: Colors.orange.shade400,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      "Reintentar",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                  ),
-              ],
+        centerTitle: true,
+        backgroundColor: Colors.black.withOpacity(
+          0.5,
+        ), // Semi-transparent AppBar
+        elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Linterna',
+            onPressed: () => _controller.toggleTorch(),
+            icon: ValueListenableBuilder<MobileScannerState>(
+              valueListenable: _controller,
+              builder: (context, state, _) {
+                final torch = state.torchState;
+                final isOn = torch == TorchState.on;
+                return Icon(
+                  isOn ? Icons.flash_on : Icons.flash_off,
+                  color: Colors.white, // White icon
+                );
+              },
             ),
           ),
+          IconButton(
+            tooltip: 'Cambiar cámara',
+            onPressed: () => _controller.switchCamera(),
+            icon: ValueListenableBuilder<MobileScannerState>(
+              valueListenable: _controller,
+              builder: (context, state, _) {
+                final facing = state.cameraDirection;
+                final back = facing == CameraFacing.back;
+                return Icon(
+                  back ? Icons.camera_rear : Icons.camera_front,
+                  color: Colors.white, // White icon
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          MobileScanner(controller: _controller, onDetect: _onDetect),
+          const _ScannerOverlay(),
+          if (_error != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 24,
+              child: _ErrorBanner(
+                message: _error!,
+                onDismiss: () => setState(() => _error = null),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScannerOverlay extends StatelessWidget {
+  const _ScannerOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Center(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.7,
+          height: MediaQuery.of(context).size.width * 0.7,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.white70, width: 3),
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+  final VoidCallback onDismiss;
+  const _ErrorBanner({required this.message, required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.redAccent.shade700.withOpacity(
+        0.9,
+      ), // Semi-transparent color
+      elevation: 4,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(message, style: const TextStyle(color: Colors.white)),
+            ),
+            IconButton(
+              onPressed: onDismiss,
+              icon: const Icon(Icons.close, color: Colors.white),
+            ),
+          ],
         ),
       ),
     );
